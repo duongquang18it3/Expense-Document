@@ -246,4 +246,4 @@ with col2:
 
     if image_file is not None:
         uploaded_image = Image.open(image_file)
-        st.image(uploaded_image, width=800)
+        st.image(uploaded_image, use_column_width="always")
