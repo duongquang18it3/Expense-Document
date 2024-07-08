@@ -1,6 +1,7 @@
 import streamlit as st
 from PIL import Image
-
+import json
+import csv
 st.set_page_config(layout="wide", page_title="")
 
 # Create a placeholder for the uploaded image
@@ -16,11 +17,12 @@ subcategory_options = [
     "Office Supplies & Expenses", "Other expenses", "Professional Services", 
     "Rent", "Salaries and Wages", "Subscriptions", "Taxes", "Tools & Hardware", 
     "Training and Education", "Transportation and Travel", "Utilities", 
-    "Vehicles and Gas"
+    "Vehicles and Gas","Other"
 ]
 
 # Subcategory options
 currency_options = [
+    "SGD - Singapore dollar",
     "AFN - Afghan afghani",
     "ALL - Albanian lek",
     "DZD - Algerian dinar",
@@ -147,7 +149,6 @@ currency_options = [
     "SCR - Seychellois rupee",
     "SLL - Sierra Leonean leone",
     "XAG - Silver (troy ounce)",
-    "SGD - Singapore dollar",
     "SBD - Solomon Islands dollar",
     "SOS - Somali shilling",
     "ZAR - South African rand",
@@ -186,12 +187,16 @@ currency_options = [
     "ZMW - Zambian kwacha",
     "ZWL - Zimbabwean dollar"
 ]
+default_currency_index = currency_options.index("SGD - Singapore dollar")
+# Initialize or load stored data
+def load_stored_data():
+    if 'payment_info' not in st.session_state:
+        st.session_state['payment_info'] = {}
+
+load_stored_data()
 
 # Create the form in the left column
 with col1:
-    with st.form("expense_report_form"):
-        
-
         merchant = st.text_input(label="Merchant", value="")
         date = st.date_input(label="Date")
         document_category = st.selectbox(
@@ -201,10 +206,20 @@ with col1:
         subcategory = st.selectbox(label="Subcategory", options=subcategory_options)
 
         # Show text input for other subcate gory if 'Other' is selected
+        if subcategory == "Other":
+            new_subcategory = st.text_input(label="Please specify other subcategory")
+            subcategory = new_subcategory if new_subcategory else subcategory
         
-        new_subcategory = st.text_input("Please specify other subcategory if necessary")
-
-        payment_method = st.text_input(label="Payment Method", value="")
+        # Payment method selection outside the form
+        payment_method = col1.selectbox("Payment Method", ["Cash", "PayNow", "Credit Card", "On Credit"], index=0)
+        
+        # Display additional field based on payment method selection outside the form
+        account_number = ""
+        if payment_method in ["PayNow", "Credit Card"]:
+            field_label = f"{payment_method} Account Number"
+            default_value = st.session_state['payment_info'].get(payment_method, '')
+            account_number = col1.text_input(label=field_label, value=default_value)
+        department = st.selectbox("Department", ["Harry Kek", "Nam Nguyen", "HR", "Accounting"], index=0)    
         reference = st.text_input(label="Reference", value="")
         tax_calculation = st.radio(label="Tax Calculation", options=["Tax Included", "Tax Excluded"])  
         value = st.number_input(label="Value", value=0.00)
@@ -214,32 +229,46 @@ with col1:
 
         # Display tax percentage
         st.write(f"= {tax_percentage:.2f}%")
-        currency = st.selectbox(label="Currency", options=currency_options)
+        currency = st.selectbox(label="Currency", options=currency_options,index=default_currency_index)
         detail = st.text_input(label="Detail", value="")
         document_tag = st.text_input(label="Document tags", value="")
         
-        submitted = st.form_submit_button("Submit")
-        # Check if the form has been submitted
-        if submitted:
-            # Get the form values
+        if st.button("Done and Submit", type="primary"):
+            # Collect all form data
             form_data = {
                 "Merchant": merchant,
-                "Date": date,
+                "Date": date.strftime('%Y-%m-%d'),
                 "Document Category": document_category,
                 "Subcategory": subcategory,
                 "Payment Method": payment_method,
+                "Account Number": account_number,
                 "Reference": reference,
                 "Tax Calculation": tax_calculation,
                 "Value": value,
-                "Currency": currency
+                "Tax Amount": tax_amount,
+                "Currency": currency,
+                "Detail": detail,
+                "Document Tags": document_tag
             }
-
-            # Process the form data
-            # ...
-
-            # Display a message to the user
+            
+            # Save data to CSV file as JSON
+            with open('expense_report.csv', 'w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow([json.dumps(form_data)])
+            
+            # Download button for CSV file
+            with open('expense_report.csv', 'r') as file:
+                st.download_button(label="Download Expense Report", data=file, file_name='expense_report.csv', mime='text/csv')
+            
+            # Success message
             st.success("Expense report submitted successfully!")
+# Function to load stored data (simulated with session state for example)
+def load_stored_data():
+    if 'payment_info' not in st.session_state:
+        st.session_state['payment_info'] = {}
 
+# Initialize stored data
+load_stored_data()
 # Create the image upload section in the right column
 with col2:
     image_file = st.file_uploader("Upload Invoice or Receipt", type=["jpg", "jpeg", "png"])
