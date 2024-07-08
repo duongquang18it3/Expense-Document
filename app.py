@@ -1,7 +1,7 @@
 import streamlit as st
 from PIL import Image
 import json
-import csv
+    
 st.set_page_config(layout="wide", page_title="")
 
 # Create a placeholder for the uploaded image
@@ -11,14 +11,33 @@ uploaded_image = None
 col1, col2 = st.columns([4, 6])
 
 # Subcategory options
-subcategory_options = [
-    "Expense categories", "Food and Groceries", "Healthcare", "Insurance", 
-    "Marketing and Advertising", "Meals and Entertainment", "Mortgage", 
-    "Office Supplies & Expenses", "Other expenses", "Professional Services", 
-    "Rent", "Salaries and Wages", "Subscriptions", "Taxes", "Tools & Hardware", 
-    "Training and Education", "Transportation and Travel", "Utilities", 
-    "Vehicles and Gas","Other"
-]
+subcategory_options = {
+    "Expenses": [
+        "Food and Groceries", "Healthcare", "Insurance", "Marketing and Advertising", 
+        "Meals and Entertainment", "Mortgage", "Office Supplies & Expenses", "Other expenses", 
+        "Professional Services", "Rent", "Salaries and Wages", "Subscriptions", "Taxes", 
+        "Tools & Hardware", "Training and Education", "Transportation and Travel", "Utilities", 
+        "Vehicles and Gas","Other"
+    ],
+    "Income": [
+        "Affiliate Marketing", "Business Sales", "Freelance Income", "Gifts and Donations", 
+        "Investments", "Online Sales", "Other income", "Rental Income", "Royalties", 
+        "Salary or Wages", "Other"
+    ],
+    "Bank statements": [
+        "Annual Reports", "Balance Sheets", "Bank statements", "Business Licenses", 
+        "Cash Flow Statements", "Contracts", "Employee Contracts", "Income Statements", 
+        "Inventory Lists", "Lease Agreements", "Meeting Minutes", "Other documents", 
+        "Purchase Orders", "Tax Statements", "Other"
+    ],
+    "Documents": [
+        "Annual Reports", "Balance Sheets", "Bank statements", "Business Licenses", 
+        "Cash Flow Statements", "Contracts", "Employee Contracts", "Income Statements", 
+        "Inventory Lists", "Lease Agreements", "Meeting Minutes", "Other documents", 
+        "Purchase Orders", "Tax Statements", "Other"
+    ]
+}
+
 
 # Subcategory options
 currency_options = [
@@ -203,9 +222,9 @@ with col1:
             label="Document Category",
             options=["Expenses", "Income", "Bank statements", "Documents"]
         )
-        subcategory = st.selectbox(label="Subcategory", options=subcategory_options)
+        subcategory = st.selectbox(label="Subcategory", options=subcategory_options[document_category])
 
-        # Show text input for other subcate gory if 'Other' is selected
+        # Show text input for other subcategory if 'Other' is selected
         if subcategory == "Other":
             new_subcategory = st.text_input(label="Please specify other subcategory")
             subcategory = new_subcategory if new_subcategory else subcategory
@@ -219,16 +238,16 @@ with col1:
             field_label = f"{payment_method} Account Number"
             default_value = st.session_state['payment_info'].get(payment_method, '')
             account_number = col1.text_input(label=field_label, value=default_value)
-        department = st.selectbox("Department", ["Harry Kek", "Nam Nguyen", "HR", "Accounting"], index=0)    
+        department = st.selectbox("Customer or Department", ["Harry Kek", "Nam Nguyen", "HR", "Accounting"], index=0)    
         reference = st.text_input(label="Reference", value="")
         tax_calculation = st.radio(label="Tax Calculation", options=["Tax Included", "Tax Excluded"])  
-        value = st.number_input(label="Value", value=0.00)
+        total_amount = st.number_input(label="Total Amount", value=0.00)
         tax_amount = st.number_input(label="Tax amount", value=0.00)
         # Calculate tax percentage
-        tax_percentage = (tax_amount / value) * 100 if value != 0 else 0
+        
 
         # Display tax percentage
-        st.write(f"= {tax_percentage:.2f}%")
+        
         currency = st.selectbox(label="Currency", options=currency_options,index=default_currency_index)
         detail = st.text_input(label="Detail", value="")
         document_tag = st.text_input(label="Document tags", value="")
@@ -244,23 +263,22 @@ with col1:
                 "Account Number": account_number,
                 "Reference": reference,
                 "Tax Calculation": tax_calculation,
-                "Value": value,
+                "Total Amount": total_amount,
                 "Tax Amount": tax_amount,
                 "Currency": currency,
                 "Detail": detail,
                 "Document Tags": document_tag
             }
             
-            # Save data to CSV file as JSON
-            with open('expense_report.csv', 'w', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerow([json.dumps(form_data)])
+            # Write JSON data to a file
+            with open('expense_report.json', 'w') as json_file:
+                json.dump(form_data, json_file, indent=4)
+
+            # Provide download button for JSON file
+            with open('expense_report.json', 'r') as json_file:
+                json_data = json_file.read()
+            st.download_button("Download JSON", json_data, "expense_report.json", "application/json")
             
-            # Download button for CSV file
-            with open('expense_report.csv', 'r') as file:
-                st.download_button(label="Download Expense Report", data=file, file_name='expense_report.csv', mime='text/csv')
-            
-            # Success message
             st.success("Expense report submitted successfully!")
 # Function to load stored data (simulated with session state for example)
 def load_stored_data():
